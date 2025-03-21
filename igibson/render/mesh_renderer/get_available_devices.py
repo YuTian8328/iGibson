@@ -53,7 +53,6 @@ def get_cuda_device(minor_idx):
     :param minor_idx: Minor index for a GPU
     :return: index to use in torch.cuda.device()
     """
-
     executable_path = os.path.join(os.path.dirname(__file__), "build")
     try:
         num_devices = int(subprocess.check_output(["{}/query_devices".format(executable_path)]))
@@ -61,12 +60,17 @@ def get_cuda_device(minor_idx):
         return 0
 
     for i in range(num_devices):
-        output = subprocess.check_output(["nvidia-smi", "-q", "-i", str(i)])
-        output_list = output.decode("utf-8").split("\n")
-        output_list = [item for item in output_list if "Minor" in item]
-        num = int(output_list[0].split(":")[-1])
-        if num == minor_idx:
-            return i
+        try:
+            output = subprocess.check_output(["nvidia-smi", "-q", "-i", str(i)])
+            output_list = output.decode("utf-8").split("\n")
+            output_list = [item for item in output_list if "Minor" in item]
+            num = int(output_list[0].split(":")[-1])
+            if num == minor_idx:
+                return i
+        except subprocess.CalledProcessError as e:
+            if i == 0:
+                return 0  # Return 0 if we can't query the first GPU
+            continue
     return 0
 
 
